@@ -17,11 +17,6 @@ session_start();
 
     <?php
     if (isset($_POST["login_form"])) {
-        /*
-            Ajouter un test qui vérifie (en dur) si username est admin 
-            et password XD2Ka@ et stocker les informations 
-            dans la session (le username)
-            */
         if ($_POST["username"] === "admin" && $_POST["password"] === "XD2Ka@") {
 
             session_regenerate_id(true);
@@ -34,7 +29,7 @@ session_start();
 
     <header>
         <?php if (isset($_SESSION["username"])) { ?>
-            Bonjour <?= $_SESSION["username"] ?>.
+            Bonjour <?= htmlspecialchars($_SESSION["username"]) ?>
             <a href="logout.php">Se déconnecter</a>
         <?php } ?>
     </header>
