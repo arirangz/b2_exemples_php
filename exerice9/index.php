@@ -1,37 +1,33 @@
 <?php
-try {
-    $pdo = new PDO("mysql:dbname=exercice9;host=localhost;charset=utf8mb4", "root", "");
-} catch (Exception $e) {
-    die('Erreur : ' . $e->getMessage());
-}
+
+require_once "libs/pdo.php";
+require_once "libs/article.php";
+
+
 
 
 if (isset($_GET['action']) && isset($_GET['id'])) {
     if ($_GET["action"] === "delete") {
-        //Gestion de la suppression
-        $query = $pdo->prepare("DELETE FROM post WHERE id = :id");
-        $query->bindValue(':id', $_GET['id'], PDO::PARAM_INT);
-        $query->execute();
+        deleteArticleById($pdo, $_GET['id']);
+    }
+    if ($_GET["action"] === "modify") {
+        $articleModif = getArticleById($pdo, $_GET['id']);
     }
 }
 
 if (isset($_POST['title']) && isset($_POST['description'])) {
-
-    $postDate = date("Y-m-d H:i:s");
-
-    // Insertion en base de données
-    $query = $pdo->prepare("INSERT INTO post (title, description, date) VALUES (:title, :description, :date)");
-    $query->bindValue(':title', $_POST['title'], PDO::PARAM_STR);
-    $query->bindValue(':description', $_POST['description'], PDO::PARAM_STR);
-    $query->bindValue(':date', $postDate, PDO::PARAM_STR);
-
-    $query->execute();
+    // On teste la présence de l'id dans $_POST pour savoir si on fait une modification ou ajout
+    if (isset($_POST["id"])) {
+        updateArticle($pdo, $_POST["id"], $_POST['title'],  $_POST['description']);
+        // On redirige vers l'index pour ne plus avoir de param d'url
+        header("Location: index.php");
+    } else {
+        createArticle($pdo, $_POST['title'], $_POST['description']);
+    }
 }
 
 //On récupère tous les articles
-$query = $pdo->prepare("SELECT id, title, description FROM post");
-$query->execute();
-$articles = $query->fetchAll(PDO::FETCH_ASSOC);
+$articles = getArticles($pdo);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -53,19 +49,34 @@ $articles = $query->fetchAll(PDO::FETCH_ASSOC);
 
     <?php foreach ($articles as $article) { ?>
 
-        <h2><?= htmlspecialchars($article["title"]) ?> <a href="index.php?id=<?= htmlspecialchars($article["id"]) ?>&action=delete">Supprimer</a></h2>
+        <h2><?= htmlspecialchars($article["title"]) ?> <a href="index.php?id=<?= htmlspecialchars($article["id"]) ?>&action=modify">Modifier</a> <a href="index.php?id=<?= htmlspecialchars($article["id"]) ?>&action=delete">Supprimer</a></h2>
         <p><?= htmlspecialchars($article["description"]) ?></p>
     <?php } ?>
 
+
     <form action="" method="post">
-        <h2>Ajouter un article</h2>
+
+        <?php if (isset($_GET['action']) && $_GET['action'] === "modify") {
+            $formTitle = "Modifier un article";
+        } else {
+            $formTitle = "Ajouter un article";
+        } ?>
+        <h2><?= $formTitle ?></h2>
+
+        <?php if (isset($_GET['action']) && isset($_GET['id']) && $_GET['action'] === "modify") { ?>
+            <input type="hidden" name="id" value="<?= htmlspecialchars($_GET["id"]) ?>">
+        <?php } ?>
         <p>
             <label for="title">Titre</label>
-            <input type="text" name="title" id="title">
+            <input type="text" name="title" id="title" value="<?php if (isset($articleModif["title"])) {
+                                                                    echo htmlspecialchars($articleModif["title"]);
+                                                                } ?>">
         </p>
         <p>
             <label for="description">Description</label>
-            <textarea name="description" id="description" cols="30" rows="10"></textarea>
+            <textarea name="description" id="description" cols="30" rows="10"><?php if (isset($articleModif["description"])) {
+                                                                                    echo htmlspecialchars($articleModif["description"]);
+                                                                                } ?></textarea>
         </p>
         <p>
             <input type="submit" value="Enregistrer" name="ajout_article">
